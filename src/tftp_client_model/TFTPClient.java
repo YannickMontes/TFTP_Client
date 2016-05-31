@@ -1,4 +1,4 @@
-package arar_tftp;
+package tftp_client_model;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -42,7 +42,7 @@ public class TFTPClient {
      */
     public TFTPClient()
     {
-        this.SendFile("Envoi.txt");
+        //this.SendFile("Envoi.txt");
         //this.ReceiveFile("gobert.mp4");
     }
     

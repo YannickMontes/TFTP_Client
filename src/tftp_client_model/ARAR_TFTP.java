@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package arar_tftp;
+package tftp_client_model;
 
 /**
  *
