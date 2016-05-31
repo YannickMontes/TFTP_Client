@@ -107,11 +107,11 @@ public class TFTPClient {
         } catch (FileNotFoundException ex) {
             Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SocketException ex) {
-            Logger.getLogger(ARAR_TFTP.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         } catch (UnknownHostException ex) {
-            Logger.getLogger(ARAR_TFTP.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(ARAR_TFTP.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         }      
     }
     
@@ -179,11 +179,11 @@ public class TFTPClient {
         }catch (FileNotFoundException ex) {
             Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SocketException ex) {
-            Logger.getLogger(ARAR_TFTP.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         } catch (UnknownHostException ex) {
-            Logger.getLogger(ARAR_TFTP.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(ARAR_TFTP.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
         } 
     }
     
