@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 public class TFTPClient {
     
     // TFTP SERVER INFO
-    private static final String TFTP_SERVER_IP = "192.168.43.202";// "localhost";
+    public static String TFTP_SERVER_IP = "192.168.0.11";
     private static final int TFTP_DEFAULT_PORT = 69;
 
     // TFTP OP Code
@@ -50,12 +50,12 @@ public class TFTPClient {
      * Cette fonction permet de réaliser le traitement de réception d'un fichier.
      * @param nameFile Le nom de fichier à demander au serveur.
      */
-    public void ReceiveFile(String nameFile)
+    public void ReceiveFile(String nameFile, String path)
     {
         try {
             System.out.println("Demande au serveur le fichier "+nameFile);
             //Première étape, ouvrir le fichier en écriture locale.
-            FileOutputStream file = new FileOutputStream(nameFile);
+            FileOutputStream file = new FileOutputStream(path);
             
             //Deuxième étape, communication avec le serveur pour demande de lecture
             this.datagramSocket = new DatagramSocket();
@@ -119,7 +119,7 @@ public class TFTPClient {
      * Méthode permettant d'envoyer un fichier au serveur.
      * @param nameFile Le nom du fichier à envoyer au serveur.
      */
-    public void SendFile(String nameFile)
+    public void SendFile(String nameFile, String path)
     {
         try
         {
@@ -132,7 +132,7 @@ public class TFTPClient {
             //On envoie notre requête
             this.datagramSocket.send(this.datagramPacketEmission);            
             //Par la suite, on ouvre notre fichier
-            FileInputStream file = new FileInputStream(nameFile);
+            FileInputStream file = new FileInputStream(path);
             //On déclare une variable pour le numero de bloc
             int blockNumber = 1;
             //On boucle jusqu'a la fin du fichier
@@ -145,8 +145,6 @@ public class TFTPClient {
                 //On analyse ce ACK
                 byte[] opCode = {receivedMessage[0], receivedMessage[1]};
                 //On check les erreurs
-                String test = new String(this.datagramPacketReception.getData());
-                System.out.println(test);
                 if(opCode[0] == OP_ERROR)
                 {
                     System.out.println("IL Y A EU ERREUR");
