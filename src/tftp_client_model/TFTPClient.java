@@ -91,6 +91,7 @@ public class TFTPClient {
                         //Deux secondes d'attentes uniquement.
                         this.datagramSocket.setSoTimeout(2000);
                         this.datagramSocket.receive(this.datagramPacketReception);
+                        condition = false;
                     }
                     catch(SocketTimeoutException ex)
                     {
@@ -190,6 +191,7 @@ public class TFTPClient {
                         //Deux secondes d'attentes
                         this.datagramSocket.setSoTimeout(2000);
                         this.datagramSocket.receive(this.datagramPacketReception);
+                        condition = false;
                     }
                     catch(SocketTimeoutException ex)
                     {
