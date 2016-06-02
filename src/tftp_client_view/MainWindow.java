@@ -14,6 +14,7 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import tftp_client_model.TFTPClient;
 
@@ -108,12 +109,11 @@ public class MainWindow extends JFrame
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                JFileChooser chooser = new JFileChooser();
-                chooser.setMultiSelectionEnabled(false);
-                int returnVal = chooser.showOpenDialog(receive);
-                if(returnVal == JFileChooser.APPROVE_OPTION)
+                String nameFile = (String)JOptionPane.showInputDialog(rootPane,"Select the name of the file on the server:\n(The file will be saved in the File folder, into the Project folder).", 
+                        "Select name of file",JOptionPane.OK_CANCEL_OPTION);
+                if(nameFile != null)
                 {
-                    tftp.ReceiveFile(chooser.getSelectedFile().getName(), chooser.getSelectedFile().getPath());
+                    tftp.ReceiveFile(nameFile, "Files/"+nameFile);
                 }
             }
         });

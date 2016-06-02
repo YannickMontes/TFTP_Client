@@ -8,6 +8,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,7 +20,7 @@ import java.util.logging.Logger;
 public class TFTPClient {
     
     // TFTP SERVER INFO
-    public static String TFTP_SERVER_IP = "192.168.0.11";
+    public static String TFTP_SERVER_IP = "172.20.10.2";
     private static final int TFTP_DEFAULT_PORT = 69;
 
     // TFTP OP Code
@@ -52,6 +53,8 @@ public class TFTPClient {
      */
     public void ReceiveFile(String nameFile, String path)
     {
+        //On définit une variable timeout a false.
+        boolean timeout = false;
         try {
             System.out.println("Demande au serveur le fichier "+nameFile);
             //Première étape, ouvrir le fichier en écriture locale.
@@ -65,7 +68,6 @@ public class TFTPClient {
             this.datagramPacketEmission = new DatagramPacket(this.sendMessage, this.sendMessage.length, InetAddress.getByName(TFTP_SERVER_IP), TFTP_DEFAULT_PORT); 
             //On envoie notre requête
             this.datagramSocket.send(this.datagramPacketEmission);
-            int cpt = 1;
             //Ensuite, on se met en reception jusqu'a la fin du fichier
             do
             {
@@ -73,14 +75,43 @@ public class TFTPClient {
                 this.receivedMessage = new byte[PACKET_SIZE];
                 this.datagramPacketReception = new DatagramPacket(this.receivedMessage, PACKET_SIZE);
                 //On se met en attente de réception
-                this.datagramSocket.receive(this.datagramPacketReception);
+                //Gestion du timer
+                boolean condition = true;
+                int compteur = 0;
+                while(condition)
+                {
+                    //On renvoi trois fois
+                    if(compteur>=2)
+                    {
+                        condition = false;
+                        timeout = true;
+                    }
+                    try
+                    {
+                        //Deux secondes d'attentes uniquement.
+                        this.datagramSocket.setSoTimeout(2000);
+                        this.datagramSocket.receive(this.datagramPacketReception);
+                    }
+                    catch(SocketTimeoutException ex)
+                    {
+                        //Si le timeout est levé, on renvoie notre packet.
+                        this.datagramSocket.send(this.datagramPacketEmission);
+                        compteur++;
+                    }   
+                }
+                if(timeout)
+                {
+                    System.out.println("Serveur injoignable. Abandon du transfert.");
+                    break;
+                }
                 //System.out.println("Paquet numero "+(cpt++)+" reçu.");
                 //On analyse le packet récupéré
                 //Dans un premier temps on découpe pour récupérer les codes d'erreur et numéro de paquets
                 byte[] opCode = {receivedMessage[0], receivedMessage[1]};
                 if(opCode[0] == OP_ERROR)//Si il y a une erreur
                 {
-                    //Signaler une erreur
+                    System.out.println("Erreur lors du transfert. Transmission annulée.");
+                    break;
                 }
                 else if(this.datagramPacketReception.getData()[1] == OP_DATAPACKET)//Pas d'erreur, tout s'est bien passé.
                 {
@@ -121,8 +152,10 @@ public class TFTPClient {
      */
     public void SendFile(String nameFile, String path)
     {
+        boolean timeout=false;
         try
         {
+            System.out.println("Envoi du fichier "+nameFile+" au serveur.");
             //Premiere étape, communication avec le serveur pour demande d'écriture
             this.datagramSocket = new DatagramSocket();
             //On créé un message WRQ
@@ -141,7 +174,36 @@ public class TFTPClient {
                 //On attends le ACK du serveur
                 this.receivedMessage = new byte[PACKET_SIZE];
                 this.datagramPacketReception = new DatagramPacket(this.receivedMessage, PACKET_SIZE);
-                this.datagramSocket.receive(this.datagramPacketReception);
+                //Gestion du timer
+                int compteur = 0;
+                boolean condition = true;
+                while(condition)
+                {
+                    //On effectue trois renvoi de packet maximum
+                    if(compteur>=2)
+                    {
+                        condition = false;
+                        timeout = true;
+                    }
+                    try
+                    {
+                        //Deux secondes d'attentes
+                        this.datagramSocket.setSoTimeout(2000);
+                        this.datagramSocket.receive(this.datagramPacketReception);
+                    }
+                    catch(SocketTimeoutException ex)
+                    {
+                        //Si le timeout est levé, on renvoie notre packet.
+                        this.datagramSocket.send(this.datagramPacketEmission);
+                        compteur++;
+                    }   
+                }
+                //Si il y a timeout, fin du programme.
+                if(timeout)
+                {
+                    System.out.println("Serveur injoignable. Abandon du transfert.");
+                    break;
+                }
                 //On analyse ce ACK
                 byte[] opCode = {receivedMessage[0], receivedMessage[1]};
                 //On check les erreurs
@@ -149,9 +211,9 @@ public class TFTPClient {
                 {
                     System.out.println("IL Y A EU ERREUR");
                 }
-                else //if(opCode[1] == OP_ACK)
+                else if(this.datagramPacketReception.getData()[1] == OP_ACK)
                 {
-                    //On reçoit l'ack
+                    System.out.println("Ack reçu");
                 }
                 //On créée la tête de paquet à envoyer
                 byte[] head = new byte[4];
@@ -162,6 +224,13 @@ public class TFTPClient {
                 //On lit ensuite dans le fichier
                 byte[] data = new byte[512];
                 int length = file.read(data, 0, 512);
+                //Si le fichier est vide, file.read() retourne -1, ce qui provoque une erreur.
+                if(length==-1)
+                {
+                    //On passe donc length à 0 pour envoyer un paquet, mais vide.
+                    //Cela permet de gérer les fichiers de taille égale au multiples de 512 octets.
+                    length=0;
+                }
                 //On copie la tête de paquet dans le tableau qu'on va envoyer
                 this.sendMessage = new byte[length+4];
                 System.arraycopy(head, 0, this.sendMessage, 0, head.length);
@@ -173,6 +242,10 @@ public class TFTPClient {
                 
             }while(this.sendMessage.length >= PACKET_SIZE);
             
+            file.close();
+            this.datagramSocket.close();
+            
+            System.out.println("Envoi du fichier terminé.");
             
         }catch (FileNotFoundException ex) {
             Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
