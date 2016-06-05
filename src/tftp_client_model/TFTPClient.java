@@ -10,8 +10,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.File;
 
 /**
  *
@@ -20,7 +19,7 @@ import java.util.logging.Logger;
 public class TFTPClient {
     
     // TFTP SERVER INFO
-    public static String TFTP_SERVER_IP = "172.20.10.2";
+    public static String TFTP_SERVER_IP = "";
     private static final int TFTP_DEFAULT_PORT = 69;
 
     // TFTP OP Code
@@ -43,21 +42,26 @@ public class TFTPClient {
      */
     public TFTPClient()
     {
-        //this.SendFile("Envoi.txt");
-        //this.ReceiveFile("gobert.mp4");
+        
     }
     
     /**
      * Cette fonction permet de réaliser le traitement de réception d'un fichier.
      * @param nameFile Le nom de fichier à demander au serveur.
+     * @param path Le chemin de fichier local
+     * @return Une chaine de caractères contenant les erreurs ou succès
      */
-    public void ReceiveFile(String nameFile, String path)
+    public String ReceiveFile(String nameFile, String path)
     {
         //On définit une variable timeout a false.
         boolean timeout = false;
         try {
-            System.out.println("Demande au serveur le fichier "+nameFile);
             //Première étape, ouvrir le fichier en écriture locale.
+            File dir = new File("TFTP_Files/");
+            if(!dir.isDirectory())
+            {
+                dir.mkdir();
+            }
             FileOutputStream file = new FileOutputStream(path);
             
             //Deuxième étape, communication avec le serveur pour demande de lecture
@@ -102,17 +106,14 @@ public class TFTPClient {
                 }
                 if(timeout)
                 {
-                    System.out.println("Serveur injoignable. Abandon du transfert.");
-                    break;
+                    return "Erreur: Serveur injoignable.";
                 }
                 //System.out.println("Paquet numero "+(cpt++)+" reçu.");
                 //On analyse le packet récupéré
-                //Dans un premier temps on découpe pour récupérer les codes d'erreur et numéro de paquets
-                byte[] opCode = {receivedMessage[0], receivedMessage[1]};
-                if(opCode[0] == OP_ERROR)//Si il y a une erreur
+                //Détection d'erreur.
+                if(this.datagramPacketReception.getData()[1] == OP_ERROR)//Si il y a une erreur
                 {
-                    System.out.println("Erreur lors du transfert. Transmission annulée.");
-                    break;
+                    return "Erreur: "+new String(this.datagramPacketReception.getData());
                 }
                 else if(this.datagramPacketReception.getData()[1] == OP_DATAPACKET)//Pas d'erreur, tout s'est bien passé.
                 {
@@ -132,31 +133,32 @@ public class TFTPClient {
                 }                
             }while(!isLastPacket());
             
-            System.out.println("Fichier correctement transféré. Transmission terminée, fermeture fichier local.");
-            
             file.close();
             this.datagramSocket.close();
+            
+            return "Succès: Fichier correctement reçu.";
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
+            return "Erreur: Problème ouverture fichier local.";
         } catch (SocketException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
+            return "Erreur: Impossible d'ouvrir un socket de communication.";
         } catch (UnknownHostException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
+            return "Erreur: Hôte inconnu.";
         } catch (IOException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
+            return "Erreur: Problème écriture fichier.";
         }      
     }
     
     /**
      * Méthode permettant d'envoyer un fichier au serveur.
      * @param nameFile Le nom du fichier à envoyer au serveur.
+     * @param path Le chemin du fichier sur l'ordinateur
+     * @return Une chaine de caractère contenant les erreurs ou succès.
      */
-    public void SendFile(String nameFile, String path)
+    public String SendFile(String nameFile, String path)
     {
         boolean timeout=false;
         try
         {
-            System.out.println("Envoi du fichier "+nameFile+" au serveur.");
             //Premiere étape, communication avec le serveur pour demande d'écriture
             this.datagramSocket = new DatagramSocket();
             //On créé un message WRQ
@@ -203,19 +205,12 @@ public class TFTPClient {
                 //Si il y a timeout, fin du programme.
                 if(timeout)
                 {
-                    System.out.println("Serveur injoignable. Abandon du transfert.");
-                    break;
+                    return "Erreur: Serveur injoignable.";
                 }
-                //On analyse ce ACK
-                byte[] opCode = {receivedMessage[0], receivedMessage[1]};
                 //On check les erreurs
-                if(opCode[0] == OP_ERROR)
+                if(this.datagramPacketReception.getData()[1] == OP_ERROR)
                 {
-                    System.out.println("IL Y A EU ERREUR");
-                }
-                else if(this.datagramPacketReception.getData()[1] == OP_ACK)
-                {
-                    System.out.println("Ack reçu");
+                    return "Erreur: "+new String(this.datagramPacketReception.getData());
                 }
                 //On créée la tête de paquet à envoyer
                 byte[] head = new byte[4];
@@ -247,17 +242,17 @@ public class TFTPClient {
             file.close();
             this.datagramSocket.close();
             
-            System.out.println("Envoi du fichier terminé.");
+            return "Envoi du fichier terminé avec succès.";
             
         }catch (FileNotFoundException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
+            return "Erreur: Problème ouverture fichier local.";
         } catch (SocketException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
+            return "Erreur: Impossible d'ouvrir un socket de communication.";
         } catch (UnknownHostException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
+            return "Erreur: Hôte inconnu.";
         } catch (IOException ex) {
-            Logger.getLogger(TFTPClient.class.getName()).log(Level.SEVERE, null, ex);
-        } 
+            return "Erreur: Problème écriture fichier.";
+        }      
     }
     
     /**

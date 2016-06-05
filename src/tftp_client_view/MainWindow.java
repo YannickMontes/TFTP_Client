@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package tftp_client_view;
 
 import java.awt.Font;
@@ -10,6 +5,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -24,6 +21,7 @@ import tftp_client_model.TFTPClient;
  */
 public class MainWindow extends JFrame
 {
+    
     public static void main(String[] args) 
     {
         MainWindow mw = new MainWindow();
@@ -32,6 +30,7 @@ public class MainWindow extends JFrame
     private JButton send;
     private JButton receive;
     private JTextField[] ipServer;
+    private JLabel error;
     private TFTPClient tftp;
     
     public MainWindow()
@@ -73,6 +72,26 @@ public class MainWindow extends JFrame
         for(int i=0; i<4; i++)
         {
             ipServer[i] = new JTextField(3);
+            JTextField tmp = ipServer[i];
+            ipServer[i].addKeyListener(new KeyListener()
+            {
+                @Override
+                public void keyTyped(KeyEvent e)
+                {
+                }
+
+                @Override
+                public void keyPressed(KeyEvent e)
+                {
+
+                }
+
+                @Override
+                public void keyReleased(KeyEvent e)
+                {
+                    onlyNumeric(tmp);
+                }
+            });
             this.add(ipServer[i],c);
             c.gridx++;
         }
@@ -80,7 +99,7 @@ public class MainWindow extends JFrame
         ipServer[0].setText("192");
         ipServer[1].setText("168");
         ipServer[2].setText("0");
-        ipServer[3].setText("11");
+        ipServer[3].setText("16");
         
         JButton applyIP = new JButton("Apply IP");
         applyIP.addActionListener(new ActionListener()
@@ -89,6 +108,8 @@ public class MainWindow extends JFrame
             public void actionPerformed(ActionEvent e)
             {
                 TFTPClient.TFTP_SERVER_IP = ipServer[0].getText()+"."+ipServer[1].getText()+"."+ipServer[2].getText()+"."+ipServer[3].getText();
+                receive.setEnabled(true);
+                send.setEnabled(true);
             }
         });
         this.add(applyIP, c);
@@ -97,23 +118,38 @@ public class MainWindow extends JFrame
         c.gridx=1;
         c.gridy=3;
         this.send = new JButton("Send a file");
+        this.send.setEnabled(false);
         this.add(this.send, c);
         
         c.gridx=2;
         c.gridy=3;
         this.receive = new JButton("Receive a file");
+        this.receive.setEnabled(false);
         this.add(this.receive, c);
+        
+        c.gridx=0;
+        c.gridwidth=4;
+        c.gridy=4;
+        this.error = new JLabel();
+        this.add(this.error, c);
         
         this.receive.addActionListener(new ActionListener()
         {
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                String nameFile = (String)JOptionPane.showInputDialog(rootPane,"Select the name of the file on the server:\n(The file will be saved in the File folder, into the Project folder).", 
+                String nameFile = (String)JOptionPane.showInputDialog(rootPane,
+                        "Select the name of the file on the server:\n"
+                                + "(The file will be saved in the TFTP_Files/ folder, into your home folder).", 
                         "Select name of file",JOptionPane.OK_CANCEL_OPTION);
                 if(nameFile != null)
                 {
-                    tftp.ReceiveFile(nameFile, "Files/"+nameFile);
+                    error.setText("Retrieve "+nameFile+" from server...");
+                    pack();
+                    repaint();
+                    revalidate();
+                    String text = tftp.ReceiveFile(nameFile, "TFTP_Files/"+nameFile);
+                    error.setText(text);
                 }
             }
         });
@@ -128,11 +164,34 @@ public class MainWindow extends JFrame
                 int returnVal = chooser.showOpenDialog(send);
                 if(returnVal == JFileChooser.APPROVE_OPTION)
                 {
-                    tftp.SendFile(chooser.getSelectedFile().getName(), chooser.getSelectedFile().getPath());
+                    error.setText("Sending "+chooser.getSelectedFile().getName()+" to the server...");
+                    pack();
+                    repaint();
+                    revalidate();
+                    String text = tftp.SendFile(chooser.getSelectedFile().getName(), chooser.getSelectedFile().getPath());
+                    error.setText(text);
                 }
             }
         });
         
         this.pack();
     }
+    
+     private void onlyNumeric(JTextField tx) 
+     {
+        String s = tx.getText();
+        int cpt = 0;
+        String finalText = "";
+        for(int i=0; i<s.length() && cpt<3; i++)
+        {
+            char c = s.charAt(i);
+            if(c <= '9' && c >= '0')
+            {
+                finalText += c;
+                cpt++;
+            }
+        }
+        
+        tx.setText(finalText);
+    } 
 }

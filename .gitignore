@@ -7,3 +7,4 @@ nbactions.xml
 .nb-gradle/
 test/
 Files/
+TFTP_Files/
